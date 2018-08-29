@@ -1,7 +1,8 @@
 package com.miles.webimagedownloader;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
@@ -24,12 +25,19 @@ class WebClient {
         this.urlConnection = url.openConnection();
     }
 
-    public void downloadFromUrl() throws Exception {
+    public File downloadFromUrl(String destination) throws Exception {
         InputStream inputStream = new BufferedInputStream(urlConnection.getInputStream());
-        readStream(inputStream);
-    }
-
-    private void readStream(InputStream inputStream) {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+        InputStreamReader reader = new InputStreamReader(inputStream);
+        File file = new File(destination);
+        FileOutputStream fileOutputStream = new FileOutputStream(file);
+        char[] cBuf =  new char[1024];
+        int read;
+        while ((read = reader.read(cBuf)) > 0) {
+            fileOutputStream.write(read);
+        }
+        inputStream.close();
+        reader.close();
+        fileOutputStream.close();
+        return file;
     }
 }
