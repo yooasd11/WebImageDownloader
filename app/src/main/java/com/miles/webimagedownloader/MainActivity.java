@@ -2,13 +2,19 @@ package com.miles.webimagedownloader;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import com.jakewharton.rxbinding2.view.RxView;
 
@@ -31,9 +37,13 @@ public class MainActivity extends AppCompatActivity {
     @BindView(R.id.image)
     ImageView image;
 
+    @BindView(R.id.progress)
+    ProgressBar progressBar;
+
     private CompositeDisposable compositeDisposable = new CompositeDisposable();
     private WebClient webClient;
     private String destination;
+    private final String TAG = this.getClass().getName();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,20 +55,42 @@ public class MainActivity extends AppCompatActivity {
 
         webClient = new WebClient();
 
-        compositeDisposable.add(RxView.clicks(button)
-                .observeOn(Schedulers.io())
-                .flatMap($ -> Observable.just(downloadFile(destination)))
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(
-                        file -> {
-                            Drawable drawable = Drawable.createFromPath(file.getAbsolutePath());
-                            image.setImageDrawable(drawable);
+        /*compositeDisposable.add(RxView.clicks(button).subscribe($ ->
+            compositeDisposable.add(Observable.fromCallable(() -> downloadFile(destination))
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(file -> {
+                            Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+                            image.setImageBitmap(bitmap);
+                            progressBar.setVisibility(View.GONE);
                         },
                         throwable -> {
-                            input.setText("요청에 실패했습니다.");
+                            Toast.makeText(this, "요청에 실패했습니다.", Toast.LENGTH_SHORT).show();
+                            image.setImageDrawable(new ColorDrawable(0));
+                            progressBar.setVisibility(View.GONE);
                             Log.e(MainActivity.class.getName(), throwable.getLocalizedMessage());
-                        }
-                ));
+                        }))));*/
+
+        compositeDisposable.add(RxView.clicks(button)
+                .observeOn(Schedulers.io())
+                .flatMap($ -> Observable.fromCallable(() -> downloadFile(destination)))
+                .onErrorReturn(throwable -> new File(""))
+                .observeOn(AndroidSchedulers.mainThread())
+                .flatMap(file -> {
+                    if (file == null || !file.exists()) {
+                        Toast.makeText(this, "요청에 실패했습니다.", Toast.LENGTH_SHORT).show();
+                        progressBar.setVisibility(View.GONE);
+                        return Observable.just(new ColorDrawable(Color.TRANSPARENT));
+                    } else {
+                        return Observable.just(BitmapDrawable.createFromPath(file.getAbsolutePath()));
+                    }
+                })
+                .subscribe(drawable -> {
+                            image.setImageDrawable(drawable);
+                            progressBar.setVisibility(View.GONE);
+                        },
+                        throwable -> Log.e(TAG, throwable.getLocalizedMessage())
+                        ));
     }
 
     private File downloadFile(String destination) throws Exception {

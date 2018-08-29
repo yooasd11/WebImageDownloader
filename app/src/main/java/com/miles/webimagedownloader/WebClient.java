@@ -25,19 +25,22 @@ class WebClient {
         this.urlConnection = url.openConnection();
     }
 
-    public File downloadFromUrl(String destination) throws Exception {
-        InputStream inputStream = new BufferedInputStream(urlConnection.getInputStream());
-        InputStreamReader reader = new InputStreamReader(inputStream);
+    public File downloadFromUrl(String destination) {
         File file = new File(destination);
-        FileOutputStream fileOutputStream = new FileOutputStream(file);
-        char[] cBuf =  new char[1024];
-        int read;
-        while ((read = reader.read(cBuf)) > 0) {
-            fileOutputStream.write(read);
+        try {
+            InputStream inputStream = new BufferedInputStream(urlConnection.getInputStream());
+            FileOutputStream fileOutputStream = new FileOutputStream(file);
+            byte[] buf = new byte[1024];
+            int read;
+            while ((read = inputStream.read(buf)) > 0) {
+                fileOutputStream.write(buf, 0, read);
+            }
+            inputStream.close();
+            fileOutputStream.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
-        inputStream.close();
-        reader.close();
-        fileOutputStream.close();
         return file;
     }
 }
