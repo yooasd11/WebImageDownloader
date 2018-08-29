@@ -4,7 +4,6 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
 
@@ -25,22 +24,17 @@ class WebClient {
         this.urlConnection = url.openConnection();
     }
 
-    public File downloadFromUrl(String destination) {
+    public File downloadFromUrl(String destination) throws Exception {
         File file = new File(destination);
-        try {
-            InputStream inputStream = new BufferedInputStream(urlConnection.getInputStream());
-            FileOutputStream fileOutputStream = new FileOutputStream(file);
-            byte[] buf = new byte[1024];
-            int read;
-            while ((read = inputStream.read(buf)) > 0) {
-                fileOutputStream.write(buf, 0, read);
-            }
-            inputStream.close();
-            fileOutputStream.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+        InputStream inputStream = new BufferedInputStream(urlConnection.getInputStream());
+        FileOutputStream fileOutputStream = new FileOutputStream(file);
+        byte[] buf = new byte[1024];
+        int read;
+        while ((read = inputStream.read(buf)) > 0) {
+            fileOutputStream.write(buf, 0, read);
         }
+        inputStream.close();
+        fileOutputStream.close();
         return file;
     }
 }
