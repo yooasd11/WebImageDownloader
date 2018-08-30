@@ -7,24 +7,10 @@ import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
 
-class WebClient {
-    private URL url;
-    private URLConnection urlConnection;
-
-    WebClient() {
-    }
-
-    WebClient(String stringUrl) throws Exception {
-        this.url = new URL(stringUrl);
-        this.urlConnection = url.openConnection();
-    }
-
-    public void setUrl(String stringUrl) throws Exception {
-        this.url = new URL(stringUrl);
-        this.urlConnection = url.openConnection();
-    }
-
-    public File downloadFromUrl(String destination) throws Exception {
+class WebImageDownloadClient {
+    public File downloadFromUrl(String stringUrl, String destination) throws Exception {
+        URL url = new URL(stringUrl);
+        URLConnection urlConnection = url.openConnection();
         File file = new File(destination);
         InputStream inputStream = new BufferedInputStream(urlConnection.getInputStream());
         FileOutputStream fileOutputStream = new FileOutputStream(file);

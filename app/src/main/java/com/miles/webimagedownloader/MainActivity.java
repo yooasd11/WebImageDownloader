@@ -1,8 +1,7 @@
 package com.miles.webimagedownloader;
 
-import android.graphics.Color;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.ColorDrawable;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -11,12 +10,8 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.Toast;
 
 import com.jakewharton.rxbinding2.view.RxView;
-
-import java.io.File;
-import java.util.Objects;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -38,8 +33,9 @@ public class MainActivity extends AppCompatActivity {
     @BindView(R.id.progress)
     ProgressBar progressBar;
 
-    private CompositeDisposable compositeDisposable = new CompositeDisposable();
-    private WebClient webClient;
+    private final CompositeDisposable compositeDisposable = new CompositeDisposable();
+    private final CachedBitmapCrawler cachedBitmapCrawler = new CachedBitmapCrawler();
+    private Bitmap failBitmap;
     private String destination;
     private final String TAG = this.getClass().getName();
 
@@ -49,34 +45,21 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
 
+        failBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.x);
         destination = getFilesDir().getAbsolutePath() + "/image";
 
-        webClient = new WebClient();
-
         compositeDisposable.add(RxView.clicks(button)
+                .doOnNext($ -> progressBar.setVisibility(View.VISIBLE))
                 .observeOn(Schedulers.io())
-                .flatMap($ -> Observable.fromCallable(() -> downloadFile(destination))
-                        .onErrorReturn(throwable -> new File("")))
+                .flatMap($ -> Observable.fromCallable(() -> cachedBitmapCrawler.getBitmapWithUrl(input.getText().toString(), destination))
+                        .onErrorReturn(throwable -> failBitmap))
                 .observeOn(AndroidSchedulers.mainThread())
-                .flatMap(file -> {
-                    if (file == null || !file.exists()) {
-                        Toast.makeText(this, "요청에 실패했습니다.", Toast.LENGTH_SHORT).show();
-                        return Observable.just(new ColorDrawable(Color.TRANSPARENT));
-                    } else {
-                        return Observable.just(Objects.requireNonNull(BitmapDrawable.createFromPath(file.getAbsolutePath())));
-                    }
-                })
-                .subscribe(drawable -> {
-                            image.setImageDrawable(drawable);
+                .subscribe(bitmap -> {
+                            image.setImageBitmap(bitmap);
                             progressBar.setVisibility(View.GONE);
                         },
                         throwable -> Log.e(TAG, throwable.getLocalizedMessage())
                         ));
-    }
-
-    private File downloadFile(String destination) throws Exception {
-        webClient.setUrl(input.getText().toString());
-        return webClient.downloadFromUrl(destination);
     }
 
     @Override
