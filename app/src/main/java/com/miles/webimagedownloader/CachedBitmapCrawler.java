@@ -7,12 +7,12 @@ import android.util.Log;
 import java.io.File;
 
 class CachedBitmapCrawler {
-    private final BitmapCache bitmapCache = BitmapCache.BITMAP_CACHE;
+    private final BitmapMemoryCache bitmapMemoryCache = BitmapMemoryCache.get();
     private final WebImageDownloadClient webImageDownloadClient = new WebImageDownloadClient();
     private final String TAG = this.getClass().getName();
 
     public Bitmap getBitmapWithUrl(String url, String destination) throws Exception {
-        Bitmap bitmap = bitmapCache.getBitmapFromCache(url);
+        Bitmap bitmap = bitmapMemoryCache.get(url);
         if (bitmap != null) {
             Log.i(TAG, "Bitmap memory cache hit");
             return bitmap;
@@ -20,7 +20,7 @@ class CachedBitmapCrawler {
 
         File imageFile = webImageDownloadClient.downloadFromUrl(url, destination);
         bitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath());
-        bitmapCache.putBitmapToCache(url, bitmap);
+        bitmapMemoryCache.put(url, bitmap);
         return bitmap;
     }
 }
