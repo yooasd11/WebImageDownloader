@@ -3,9 +3,9 @@ package com.miles.webimagedownloader;
 import android.graphics.Bitmap;
 import android.util.LruCache;
 
-class BitmapMemoryCache implements BitmapCache{
-    private BitmapMemoryCache() {}
+class BitmapMemoryCache {
     private final static BitmapMemoryCache INSTANCE = new BitmapMemoryCache();
+    private BitmapMemoryCache() {}
 
     public static BitmapMemoryCache get() {
         return INSTANCE;
@@ -23,14 +23,12 @@ class BitmapMemoryCache implements BitmapCache{
         }
     };
 
-    @Override
     public void put(String key, Bitmap bitmap) {
         if (get(key) == null) {
             lruCache.put(key, bitmap);
         }
     }
 
-    @Override
     public Bitmap get(String key) {
         return lruCache.get(key);
     }

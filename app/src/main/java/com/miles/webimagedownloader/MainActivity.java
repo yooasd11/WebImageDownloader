@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity {
     ProgressBar progressBar;
 
     private final CompositeDisposable compositeDisposable = new CompositeDisposable();
-    private final CachedBitmapCrawler cachedBitmapCrawler = new CachedBitmapCrawler();
+    private CachedBitmapCrawler cachedBitmapCrawler;
     private Bitmap failBitmap;
     private String destination;
     private final String TAG = this.getClass().getName();
@@ -45,6 +45,11 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
 
+        try {
+            cachedBitmapCrawler = new CachedBitmapCrawler(getApplicationContext());
+        } catch (Exception e) {
+            Log.e(TAG, e.getLocalizedMessage());
+        }
         failBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.x);
         destination = getFilesDir().getAbsolutePath() + "/image";
 
