@@ -1,6 +1,7 @@
 package com.miles.webimagedownloader;
 
 import java.io.BufferedReader;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -8,18 +9,20 @@ import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 
-public class DiskCache {
+public class DiskLruCache {
     private final File directory;
     private final File data;
-    private final int maxSize;
+    private final int maxCount;
+    private final long maxSize;
     private final HashMap<String, Entry> hashMap = new HashMap<>();
     private boolean corrunted = false;
     private long totalSize = 0;
     private int count = 0;
 
-    private DiskCache(File directory, File data, int maxSize) {
+    private DiskLruCache(File directory, File data, int maxCount, long maxSize) {
         this.directory = directory;
         this.data = data;
+        this.maxCount = maxCount;
         this.maxSize = maxSize;
     }
 
@@ -27,7 +30,8 @@ public class DiskCache {
         private static Builder INSTANCE = new Builder();
         private String directoryName;
         private String fileName;
-        private int maxSize;
+        private int maxCount;
+        private long maxSize;
 
         public static Builder get() {
             return INSTANCE;
@@ -43,12 +47,17 @@ public class DiskCache {
             return this;
         }
 
+        public Builder setMaxCount(int maxCount) {
+            this.maxCount = maxCount;
+            return this;
+        }
+
         public Builder setMaxSize(int maxSize) {
             this.maxSize = maxSize;
             return this;
         }
 
-        public DiskCache create() throws Exception {
+        public DiskLruCache create() throws Exception {
             File directory = new File(directoryName);
             File file = new File(directory, fileName);
 
@@ -64,56 +73,68 @@ public class DiskCache {
                 throw new Exception(fileName + " creation failed.");
             }
 
-            if (maxSize <= 0) {
-                throw new IllegalArgumentException("maxSize <= 0");
+            if (maxCount <= 0) {
+                throw new IllegalArgumentException("maxCount <= 0");
             }
 
-            return new DiskCache(directory, file, maxSize);
+            return new DiskLruCache(directory, file, maxCount, maxSize);
         }
     }
 
     public void open() {
+        FileInputStream inputStream = null;
+        BufferedReader reader = null;
         try {
-            readHeader();
-        } catch (Exception e) {
-            e.printStackTrace();
-            init();
-        }
-    }
-
-    private void readHeader() throws Exception {
-        FileInputStream inputStream = new FileInputStream(data);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-        String[] rawHeader = reader.readLine().split("#");
-        this.count = Integer.parseInt(rawHeader[0]);
-        this.totalSize = Long.parseLong(rawHeader[1]);
-        for (int i = 0; i < count; i++) {
-            String[] rawItem = reader.readLine().split("@");
-            File file = new File(rawItem[1]);
-            if (file.exists() && file.isFile()) {
-                Entry newEntry = new Entry(rawItem[0], file);
-                hashMap.put(rawItem[0], newEntry);
-            } else {
-                this.corrunted = true;
+            inputStream = new FileInputStream(data);
+            reader = new BufferedReader(new InputStreamReader(inputStream));
+            String[] rawHeader = reader.readLine().split("#");
+            this.count = Integer.parseInt(rawHeader[0]);
+            this.totalSize = Long.parseLong(rawHeader[1]);
+            for (int i = 0; i < count; i++) {
+                String[] rawItem = reader.readLine().split("@");
+                File file = new File(directory, rawItem[1]);
+                if (file.exists() && file.isFile()) {
+                    Entry newEntry = new Entry(rawItem[0], file);
+                    hashMap.put(rawItem[0], newEntry);
+                } else {
+                    this.corrunted = true;
+                }
             }
+        } catch (Exception e) {
+            init();
+        } finally {
+            close(inputStream);
+            close(reader);
         }
     }
 
-    private void init() {
+    private void close(Closeable closeable) {
+        if (closeable == null) {
+            return;
+        }
         try {
-            data.createNewFile();
-            writeHeader(count, totalSize);
+            closeable.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void put(String key, File file) {
+    synchronized private void init() {
+        try {
+            if (!data.createNewFile()) {
+                throw new Exception("Cache data file creation failed");
+            }
+            commit();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    synchronized public void put(String key, File file) {
         try {
             hashMap.put(key, new Entry(key, file));
             totalSize += file.length() / 1024;
-            writeHeader(hashMap.size(), totalSize);
-            appendLine(key + "@" + file.getAbsolutePath());
+            commit();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -127,33 +148,37 @@ public class DiskCache {
         return null;
     }
 
-    private void writeHeader(int count, long totalSize) throws Exception {
+    synchronized private void commit() throws Exception {
         if (directory == null || !directory.exists() || !directory.isDirectory() || data == null || !data.exists() || !data.isFile()) {
             throw new FileNotFoundException();
         }
 
-        FileWriter writer = new FileWriter(data, false);
-        writer.write("" + count +"#" + totalSize);
-        writer.write(System.lineSeparator());
-        writer.close();
-    }
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append(hashMap.size())
+                .append("#")
+                .append(totalSize)
+                .append(System.lineSeparator());
 
-    private void appendLine(String line) throws Exception {
-        if (directory == null || !directory.exists() || !directory.isDirectory() || data == null || !data.exists() || !data.isFile()) {
-            throw new FileNotFoundException();
+        for (String key : hashMap.keySet()) {
+            Entry entry = hashMap.get(key);
+            if (entry != null) {
+                stringBuilder.append(key)
+                        .append("@")
+                        .append(entry.getFile().getName())
+                        .append(System.lineSeparator());
+            }
         }
 
-        FileWriter writer = new FileWriter(data, true);
-        writer.append(line);
-        writer.append(System.lineSeparator());
-        writer.close();
+        FileWriter writer = new FileWriter(data);
+        writer.write(stringBuilder.toString());
+        close(writer);
     }
 
     private class Entry {
         private String url;
         private File file;
 
-        public Entry(String url, File file) {
+        private Entry(String url, File file) {
             this.url = url;
             this.file = file;
         }

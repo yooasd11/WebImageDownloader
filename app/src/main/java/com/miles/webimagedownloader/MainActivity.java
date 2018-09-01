@@ -36,7 +36,6 @@ public class MainActivity extends AppCompatActivity {
     private final CompositeDisposable compositeDisposable = new CompositeDisposable();
     private CachedBitmapCrawler cachedBitmapCrawler;
     private Bitmap failBitmap;
-    private String destination;
     private final String TAG = this.getClass().getName();
 
     @Override
@@ -50,13 +49,13 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             Log.e(TAG, e.getLocalizedMessage());
         }
+
         failBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.x);
-        destination = getFilesDir().getAbsolutePath() + "/image";
 
         compositeDisposable.add(RxView.clicks(button)
                 .doOnNext($ -> progressBar.setVisibility(View.VISIBLE))
                 .observeOn(Schedulers.io())
-                .flatMap($ -> Observable.fromCallable(() -> cachedBitmapCrawler.getBitmapWithUrl(input.getText().toString(), destination))
+                .flatMap($ -> Observable.fromCallable(() -> cachedBitmapCrawler.getBitmapWithUrl(input.getText().toString()))
                         .onErrorReturn(throwable -> failBitmap))
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(bitmap -> {

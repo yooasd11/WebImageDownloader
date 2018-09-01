@@ -8,7 +8,7 @@ import java.net.URL;
 import java.net.URLConnection;
 
 class WebImageDownloadClient {
-    public File downloadFromUrl(String stringUrl, String destination) throws Exception {
+    public static File downloadFromUrl(String stringUrl, String destination) throws Exception {
         URL url = new URL(stringUrl);
         URLConnection urlConnection = url.openConnection();
         File file = new File(destination);

@@ -10,26 +10,19 @@ import java.io.File;
 class CachedBitmapCrawler {
     private final BitmapMemoryCache bitmapMemoryCache = BitmapMemoryCache.get();
     private final BitmapDiskCache bitmapDiskCache;
-    private final WebImageDownloadClient webImageDownloadClient = new WebImageDownloadClient();
+    private final String destination;
     private final String TAG = this.getClass().getName();
 
     public CachedBitmapCrawler(Context context) throws Exception {
+        this.destination = context.getFilesDir().getAbsolutePath();
         bitmapDiskCache = BitmapDiskCache.Builder.get()
-                .setDirectoryName(context.getFilesDir().getAbsolutePath())
+                .setDirectoryName(destination)
                 .setFileName("cache")
                 .setMaxSize(30)
                 .create();
     }
 
-    public CachedBitmapCrawler(String dishCachDirectory) throws Exception {
-        bitmapDiskCache = BitmapDiskCache.Builder.get()
-                .setDirectoryName(dishCachDirectory)
-                .setFileName("cache")
-                .setMaxSize(30)
-                .create();
-    }
-
-    public Bitmap getBitmapWithUrl(String url, String destination) throws Exception {
+    public Bitmap getBitmapWithUrl(String url) throws Exception {
         Bitmap bitmap = bitmapMemoryCache.get(url);
         if (bitmap != null) {
             Log.i(TAG, "Bitmap memory cache hit");
@@ -43,7 +36,8 @@ class CachedBitmapCrawler {
             return bitmap;
         }
 
-        File imageFile = webImageDownloadClient.downloadFromUrl(url, destination);
+        String destinationFilePath = destination + "/" + url.hashCode();
+        File imageFile = WebImageDownloadClient.downloadFromUrl(url, destinationFilePath);
         bitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath());
         bitmapMemoryCache.put(url, bitmap);
         bitmapDiskCache.put(url, imageFile);

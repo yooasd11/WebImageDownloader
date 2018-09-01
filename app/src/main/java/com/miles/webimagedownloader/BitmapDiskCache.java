@@ -6,14 +6,14 @@ import android.graphics.BitmapFactory;
 import java.io.File;
 
 public class BitmapDiskCache {
-    private final DiskCache diskCache;
+    private final DiskLruCache diskLruCache;
     private BitmapDiskCache(String directoryName, String fileName, int maxSize) throws Exception {
-        diskCache = DiskCache.Builder.get()
+        diskLruCache = DiskLruCache.Builder.get()
                 .setDirectory(directoryName)
                 .setFileName(fileName)
-                .setMaxSize(maxSize)
+                .setMaxCount(maxSize)
                 .create();
-        diskCache.open();
+        diskLruCache.open();
     }
 
     public static class Builder {
@@ -47,11 +47,11 @@ public class BitmapDiskCache {
     }
 
     public void put(String key, File file) {
-        diskCache.put(key, file);
+        diskLruCache.put(key, file);
     }
 
     public Bitmap get(String key) {
-        File bitmapFile = diskCache.get(key);
+        File bitmapFile = diskLruCache.get(key);
         if (bitmapFile != null && bitmapFile.exists() && bitmapFile.isFile()) {
             return BitmapFactory.decodeFile(bitmapFile.getAbsolutePath());
         }
