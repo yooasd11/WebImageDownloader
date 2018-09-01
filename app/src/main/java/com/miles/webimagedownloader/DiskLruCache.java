@@ -30,8 +30,8 @@ public class DiskLruCache {
         private static Builder INSTANCE = new Builder();
         private String directoryName;
         private String fileName;
-        private int maxCount;
-        private long maxSize;
+        private int maxCount = 10;
+        private long maxSize = 100 * 1024;
 
         public static Builder get() {
             return INSTANCE;
@@ -52,7 +52,7 @@ public class DiskLruCache {
             return this;
         }
 
-        public Builder setMaxSize(int maxSize) {
+        public Builder setMaxSize(long maxSize) {
             this.maxSize = maxSize;
             return this;
         }

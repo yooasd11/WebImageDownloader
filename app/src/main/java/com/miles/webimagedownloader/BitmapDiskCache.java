@@ -7,11 +7,12 @@ import java.io.File;
 
 public class BitmapDiskCache {
     private final DiskLruCache diskLruCache;
-    private BitmapDiskCache(String directoryName, String fileName, int maxSize) throws Exception {
+    private BitmapDiskCache(String directoryName, String fileName, int maxCount, long kilobytes) throws Exception {
         diskLruCache = DiskLruCache.Builder.get()
                 .setDirectory(directoryName)
                 .setFileName(fileName)
-                .setMaxCount(maxSize)
+                .setMaxCount(maxCount)
+                .setMaxSize(kilobytes)
                 .create();
         diskLruCache.open();
     }
@@ -19,7 +20,8 @@ public class BitmapDiskCache {
     public static class Builder {
         private String directoryName;
         private String fileName;
-        private int maxSize;
+        private int maxCount;
+        private long maxSize;
         private Builder() {}
 
         public static Builder get() {
@@ -36,13 +38,18 @@ public class BitmapDiskCache {
             return this;
         }
 
-        public Builder setMaxSize(int maxSize) {
-            this.maxSize = maxSize;
+        public Builder setMaxCount(int maxCount) {
+            this.maxCount = maxCount;
+            return this;
+        }
+
+        public Builder setMaxSize(long kilobytes) {
+            this.maxSize = kilobytes;
             return this;
         }
 
         public BitmapDiskCache create() throws Exception {
-            return new BitmapDiskCache(directoryName, fileName, maxSize);
+            return new BitmapDiskCache(directoryName, fileName, maxCount, maxSize);
         }
     }
 

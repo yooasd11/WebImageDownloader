@@ -18,7 +18,7 @@ class CachedBitmapCrawler {
         bitmapDiskCache = BitmapDiskCache.Builder.get()
                 .setDirectoryName(destination)
                 .setFileName("cache")
-                .setMaxSize(30)
+                .setMaxCount(30)
                 .create();
     }
 
